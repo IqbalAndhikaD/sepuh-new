@@ -3,7 +3,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:sepuh/screen/user/authUser/signInScreenUser.dart';
+import 'package:sepuh/screen/dokter/authDokter/signInScreenDokter.dart';
 import 'package:sepuh/widget/color.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,7 +22,7 @@ class _ProfileScreenDokterState extends State<ProfileScreenDokter> {
   late TextEditingController _emailController;
   late TextEditingController _ageController;
   late TextEditingController _addressController;
-  late TextEditingController _historyController;
+  late TextEditingController _spesialisasiController;
 
   @override
   void initState() {
@@ -31,7 +31,7 @@ class _ProfileScreenDokterState extends State<ProfileScreenDokter> {
     _emailController = TextEditingController();
     _ageController = TextEditingController();
     _addressController = TextEditingController();
-    _historyController = TextEditingController();
+    _spesialisasiController = TextEditingController();
     _fetchUserData();
   }
 
@@ -41,90 +41,77 @@ class _ProfileScreenDokterState extends State<ProfileScreenDokter> {
     _emailController.dispose();
     _ageController.dispose();
     _addressController.dispose();
-    _historyController.dispose();
+    _spesialisasiController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchUserData() async {
-    setState(() {
-      _isLoading = true;
-    });
+Future<void> _fetchUserData() async {
+  setState(() {
+    _isLoading = true;
+  });
 
-    try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+  try {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
 
-      if (token == null) {
-        throw Exception('No token found');
-      }
-      Map<String, dynamic> decodedToken = Jwt.parseJwt(token);
-      final userId = decodedToken['id'];
+    if (token == null) {
+      throw Exception('No token found');
+    }
 
-      final response = await http.get(
-        Uri.parse('https://sepuh-api.vercel.app/pasien/$userId'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+    final response = await http.get(
+      Uri.parse('https://sepuh-api.vercel.app/user/dokter'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final responseData = jsonDecode(response.body);
+      final List<dynamic> doctorsData = responseData['data'];
+      
+      // Find the doctor with the matching token
+      final currentDoctor = doctorsData.firstWhere(
+        (doctor) => doctor['token'] == token,
+        orElse: () => null,
       );
 
-      if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body);
-
-        if (jsonData['data'] != null) {
-          final riwayat = jsonData['data']['riwayat']; // Extract riwayat
-          final userData = jsonData['data']['user'];
-          if (kDebugMode) {
-            print(riwayat?.join(', '));
-          }
-          setState(() {
-            _nameController.text = userData['nama'] ?? '';
-            _emailController.text = userData['email'] ?? '';
-            _ageController.text = userData['usia']?.toString() ?? '';
-            _addressController.text = userData['alamat'] ?? '';
-            _historyController.text = riwayat?.join(', ') ?? []; // Assuming _riwayat is a List<dynamic>
-          });
-          if (kDebugMode) {
-            print("berhasil");
-          }
-          // Fetch pasien data from API
-          final pasienResponse = await http.get(
-            Uri.parse(
-                'https://sepuh-api.vercel.app/pasien/${userData['_id']}'),
-            headers: {
-              'Authorization': 'Bearer $token',
-            },
-          );
-          if (kDebugMode) {
-            print(pasienResponse);
-          }
-
-          if (pasienResponse.statusCode == 200) {
-            final pasienData = jsonDecode(pasienResponse.body);
-            if (kDebugMode) {
-              print('Received pasien data: $pasienData');
-            } // Debug print
-
-            setState(() {
-              _historyController.text = pasienData['riwayat'];
-            });
-          } else {
-            throw Exception('Failed to load pasien data');
-          }
-        } else {
-          throw Exception('Unexpected data format');
+      if (currentDoctor != null) {
+        setState(() {
+          _nameController.text = currentDoctor['nama'] ?? '';
+          _emailController.text = currentDoctor['email'] ?? '';
+          _ageController.text = currentDoctor['usia']?.toString() ?? '';
+          _addressController.text = currentDoctor['alamat'] ?? '';
+          _spesialisasiController.text = currentDoctor['spesialisasi'] ?? '';
+          _isLoading = false;
+        });
+        if (kDebugMode) {
+          print("Data fetched successfully");
         }
       } else {
-        throw Exception('Failed to load user data');
+        throw Exception('Doctor not found');
       }
-    } catch (e) {
+    } else {
+      // Handle API call failure
       if (kDebugMode) {
-        print('Error fetching user data: $e');
+        print('Failed to load user data. Status code: ${response.statusCode}');
       }
-      setState(() {
-        _isLoading = false;
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to load user data')),
+      );
     }
+  } catch (e) {
+    if (kDebugMode) {
+      print('Error fetching user data: $e');
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error fetching user data: $e')),
+    );
+  } finally {
+    setState(() {
+      _isLoading = false;
+    });
   }
+}
 
   Future<void> _showEditDialog() async {
     return showDialog<void>(
@@ -198,9 +185,9 @@ class _ProfileScreenDokterState extends State<ProfileScreenDokter> {
                 ),
                 const SizedBox(height: 10),
                 TextField(
-                  controller: _historyController,
+                  controller: _spesialisasiController,
                   decoration: InputDecoration(
-                    hintText: "Riwayat",
+                    hintText: "Spesialisasi",
                     filled: true,
                     fillColor: Colors.grey[200],
                     border: OutlineInputBorder(
@@ -223,12 +210,12 @@ class _ProfileScreenDokterState extends State<ProfileScreenDokter> {
                         if (token != null) {
                           Map<String, dynamic> decodedToken =
                               Jwt.parseJwt(token);
-                          final userId = decodedToken['id'];
+                          final userId = decodedToken['_id'];
                           if (kDebugMode) {
                             print(userId);
                           }
-                          final pasienId = decodedToken[
-                              'pasien_id']; // assume this is the pasien ID
+                          final dokterId = decodedToken[
+                              '_id']; // assume this is the dokter ID
 
                           // Update user data
                           final urlUser =
@@ -242,7 +229,7 @@ class _ProfileScreenDokterState extends State<ProfileScreenDokter> {
                             'email': _emailController.text,
                             'usia': _ageController.text,
                             'alamat': _addressController.text,
-                            'riwayat': _historyController.text,
+                            'spesialisasi': _spesialisasiController.text,
                           });
                           if (kDebugMode) {
                             print("disini bodyuser : $bodyUser");
@@ -258,36 +245,36 @@ class _ProfileScreenDokterState extends State<ProfileScreenDokter> {
                           } else {
                             if (kDebugMode) {
                               print(
-                                'Error updating user data: ${responseUser.statusCode}');
+                                  'Error updating user data: ${responseUser.statusCode}');
                             }
                           }
 
-                          // Update riwayat data
-                          final urlPasien =
-                              'https://sepuh-api.vercel.app/pasien/$pasienId';
-                          final headersPasien = {
+                          // Update spesialisasi data
+                          final urldokter =
+                              'https://sepuh-api.vercel.app/dokter/$dokterId';
+                          final headersdokter = {
                             'Authorization': 'Bearer $token',
                             'Content-Type': 'application/json',
                           };
-                          final bodyPasien = jsonEncode({
-                            'riwayat': _historyController.text,
+                          final bodydokter = jsonEncode({
+                            'riwayat': _spesialisasiController.text,
                           });
 
-                          final responsePasien = await http.put(
-                              Uri.parse(urlPasien),
-                              headers: headersPasien,
-                              body: bodyPasien);
+                          final responsedokter = await http.put(
+                              Uri.parse(urldokter),
+                              headers: headersdokter,
+                              body: bodydokter);
 
-                          if (responsePasien.statusCode == 200) {
+                          if (responsedokter.statusCode == 200) {
                             if (kDebugMode) {
-                              print(responsePasien.body);
+                              print(responsedokter.body);
                             }
                             //print('Riwayat updated successfully');
                             Navigator.of(context).pop();
                           } else {
                             if (kDebugMode) {
                               print(
-                                'Error updating riwayat: ${responsePasien.statusCode}');
+                                  'Error updating spesialisasi: ${responsedokter.statusCode}');
                             }
                           }
                         } else {
@@ -328,7 +315,7 @@ class _ProfileScreenDokterState extends State<ProfileScreenDokter> {
         await prefs.remove('token');
 
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => signInScreenUser()),
+          MaterialPageRoute(builder: (context) => signInScreenDokter()),
           (Route<dynamic> route) => false,
         );
       } catch (e) {
@@ -469,7 +456,7 @@ class _ProfileScreenDokterState extends State<ProfileScreenDokter> {
                                           ),
                                         ),
                                         const Text(
-                                          'Pengguna',
+                                          'Dokter',
                                           style: TextStyle(
                                             color: Colors.grey,
                                           ),
@@ -492,7 +479,7 @@ class _ProfileScreenDokterState extends State<ProfileScreenDokter> {
                                     readOnly: true),
                                 const SizedBox(height: 10),
                                 _buildTextField(
-                                    'Riwayat Kesehatan:', _historyController,
+                                    'Spesialisasi:', _spesialisasiController,
                                     readOnly: true),
                                 const SizedBox(height: 20),
                                 Align(
