@@ -4,8 +4,7 @@ import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:sepuh/screen/dokter/screen/homeScreenDokter.dart';
-import 'package:sepuh/screen/user/screen/jadwalScreenUser.dart';
-import 'package:sepuh/screen/user/screen/profileScreenUser.dart';
+import 'package:sepuh/screen/dokter/screen/profileScreenDokter.dart';
 import '../../../widget/color.dart';
 class BotNavBarDokter extends StatefulWidget {
   final int index;
@@ -27,7 +26,7 @@ class _BotNavBarDokterState extends State<BotNavBarDokter> {
   final List<Widget> _screens = [
     const homeScreenDokter(), 
     // const jadwalScreen(),
-    const ProfileScreenUser() 
+    const ProfileScreenDokter() 
   ];
 
   @override
@@ -50,8 +49,3 @@ class _BotNavBarDokterState extends State<BotNavBarDokter> {
     );
   }
 }
-
-
-
-
-
