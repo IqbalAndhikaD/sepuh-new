@@ -31,20 +31,19 @@ class Dokter {
   final String spesialisasi;
   final List<Jadwal> jadwal;
 
-
   Dokter({
     required this.nama,
     required this.spesialisasi,
     required this.jadwal,
-
   });
 
   factory Dokter.fromJson(Map<String, dynamic> json) {
     return Dokter(
       nama: json['nama'],
       spesialisasi: json['spesialisasi'],
-      jadwal: List<Jadwal>.from(json['jadwal'].map((item) => Jadwal.fromJson(item))),
-
+      jadwal: (json['jadwal'] as List<dynamic>)
+          .map((jadwalJson) => Jadwal.fromJson(jadwalJson))
+          .toList(),
     );
   }
 
@@ -53,7 +52,6 @@ class Dokter {
       'nama': nama,
       'spesialisasi': spesialisasi,
       'jadwal': jadwal.map((item) => item.toJson()).toList(),
-
     };
   }
 }

@@ -14,7 +14,6 @@ import '../../../widget/color.dart';
 import 'registerJadwalScreenUser.dart';
 import 'package:http/http.dart' as http;
 
-
 class HomeScreenUser extends StatefulWidget {
   const HomeScreenUser({super.key});
 
@@ -23,52 +22,62 @@ class HomeScreenUser extends StatefulWidget {
 }
 
 class _HomeScreenUserState extends State<HomeScreenUser> {
-  //final List<Dokter> _dokter = [];
+  final List<Dokter> _dokter = [];
   bool _isLoading = false;
 
-  // Future<void> _fetchDokter() async {
-  //   setState(() {
-  //     _isLoading = true;
-  //   });
+  Future<void> _fetchDokter() async {
+    setState(() {
+      _isLoading = true;
+    });
 
-  //   SharedPreferences prefs = await SharedPreferences.getInstance();
-  //   final token = prefs.getString('token');
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
 
-  //   if (token != null) {
-  //     final response = await http.get(
-  //       Uri.parse('https://sepuh-api.vercel.app/user/dokter/'),
-  //       headers: {
-  //         'Authorization': 'Bearer $token',
-  //       },
-  //     );
+      if (token != null) {
+        final response = await http.get(
+          Uri.parse('https://sepuh-api.vercel.app/user/dokter/'),
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        );
 
-  //     if (response.statusCode == 200) {
-  //       final jsonData = jsonDecode(response.body);
-  //       setState(() {
-  //         _dokter.clear();
-  //         for (var item in jsonData['data']) {
-  //           _dokter.add(Dokter.fromJson(item));
-  //         }
-  //         _isLoading = false;
-  //       });
-  //     } else {
-  //       setState(() {
-  //         _isLoading = false;
-  //       });
-  //       throw Exception('Failed to load data');
-  //     }
-  //   } else {
-  //     setState(() {
-  //       _isLoading = false;
-  //     });
-  //     throw Exception('No token found');
-  //   }
-  // }
+        if (response.statusCode == 200) {
+          final jsonData = jsonDecode(response.body);
+          setState(() {
+            _dokter.clear();
+            for (var item in jsonData['data']) {
+              _dokter.add(Dokter.fromJson(item));
+            }
+            _isLoading = false;
+          });
+        } else {
+          print('Failed to load data: ${response.statusCode}');
+          print('Response body: ${response.body}');
+          setState(() {
+            _isLoading = false;
+          });
+          throw Exception('Failed to load data');
+        }
+      } else {
+        print('No token found');
+        setState(() {
+          _isLoading = false;
+        });
+        throw Exception('No token found');
+      }
+    } catch (e) {
+      print('Error: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    //_fetchDokter();
+    _fetchDokter();
     _fetchName();
   }
 
@@ -81,7 +90,7 @@ class _HomeScreenUserState extends State<HomeScreenUser> {
     if (token != null) {
       Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
       setState(() {
-        _name = decodedToken['nama'] ?? 'User'; 
+        _name = decodedToken['nama'] ?? 'User';
       });
       if (kDebugMode) {
         print(decodedToken);
@@ -92,6 +101,7 @@ class _HomeScreenUserState extends State<HomeScreenUser> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,7 +130,8 @@ class _HomeScreenUserState extends State<HomeScreenUser> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
                   child: Text(
                     'Hello,\n$_name',
                     style: const TextStyle(
@@ -352,84 +363,85 @@ class _HomeScreenUserState extends State<HomeScreenUser> {
                       ],
                     ),
                   ),
-                  // Expanded(
-                  //   child: ListView.builder(
-                  //     itemCount: _dokter.length,
-                  //     itemBuilder: (BuildContext context, int index) {
-                  //       final item = _dokter[index];
-                  //       return Container(
-                  //         height: 100,
-                  //         margin: const EdgeInsets.only(
-                  //             bottom: 8, left: 16, right: 16),
-                  //         decoration: BoxDecoration(
-                  //           color: Colors.white,
-                  //           borderRadius: BorderRadius.circular(12),
-                  //           boxShadow: const [
-                  //             BoxShadow(
-                  //               color: Colors.grey,
-                  //               offset: Offset(0.0, 2.0),
-                  //               blurRadius: 2.0,
-                  //             ),
-                  //           ],
-                  //         ),
-                  //         padding: const EdgeInsets.all(8),
-                  //         child: Row(
-                  //           children: [
-                  //             const SizedBox(width: 16),
-                  //             Expanded(
-                  //               child: Column(
-                  //                 mainAxisAlignment: MainAxisAlignment.center,
-                  //                 crossAxisAlignment: CrossAxisAlignment.start,
-                  //                 children: [
-                  //                   Text(
-                  //                     item.nama,
-                  //                     style: const TextStyle(
-                  //                       fontWeight: FontWeight.bold,
-                  //                       fontSize: 16,
-                  //                       color: Color(0XFF225374),
-                  //                     ),
-                  //                     maxLines: 2,
-                  //                     overflow: TextOverflow.ellipsis,
-                  //                   ),
-                  //                   const SizedBox(height: 4),
-                  //                   Text(
-                  //                     item.spesialisasi,
-                  //                     style: Theme.of(context)
-                  //                         .textTheme
-                  //                         .bodySmall
-                  //                         ?.copyWith(
-                  //                           fontSize: 12,
-                  //                           fontWeight: FontWeight.bold,
-                  //                           color: biruNavy,
-                  //                         ),
-                  //                   ),
-                  //                   const SizedBox(height: 4),
-                  //                   Column(
-                  //                     crossAxisAlignment:
-                  //                         CrossAxisAlignment.start,
-                  //                     children: item.jadwal.map((jadwal) {
-                  //                       return Text(
-                  //                         '${jadwal.hari}: ${jadwal.jamMulai} - ${jadwal.jamSelesai}',
-                  //                         style: Theme.of(context)
-                  //                             .textTheme
-                  //                             .caption
-                  //                             ?.copyWith(
-                  //                               fontSize: 12,
-                  //                               fontWeight: FontWeight.bold,
-                  //                               color: biruToska,
-                  //                             ),
-                  //                       );
-                  //                     }).toList(),
-                  //                   ),
-                  //                 ],
-                  //               ),
-                  //             ),
-                  //           ],
-                  //         ),
-                  //       );
-                  //     },
-                  //   ),
-                  // ),
+                  Expanded(
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : ListView.builder(
+                            itemCount: _dokter.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              final item = _dokter[index];
+                              return Container(
+                                height: 100,
+                                margin: const EdgeInsets.only(
+                                    bottom: 8, left: 16, right: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.grey,
+                                      offset: Offset(0.0, 2.0),
+                                      blurRadius: 2.0,
+                                    ),
+                                  ],
+                                ),
+                                padding: const EdgeInsets.all(8),
+                                child: Row(
+                                  children: [
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.nama,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: Color(0XFF225374),
+                                            ),
+                                          ),
+                                          Text(
+                                            item.spesialisasi,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: biruNavy,
+                                                ),
+                                          ),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: item.jadwal.map((jadwal) {
+                                              return Text(
+                                                '${jadwal.hari}: ${jadwal.jamMulai} - ${jadwal.jamSelesai}',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .caption
+                                                    ?.copyWith(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: biruToska,
+                                                    ),
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
                 ],
               ),
             ),

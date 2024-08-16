@@ -1,9 +1,7 @@
-// ignore_for_file: file_names, deprecated_member_use
-
 import 'package:flutter/material.dart';
+import 'package:sepuh/model/doctor.dart';
 import 'package:sepuh/widget/color.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../model/doctor.dart';
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -24,37 +22,46 @@ class _DoctorScreenState extends State<DoctorScreen> {
       _isLoading = true;
     });
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
 
-    if (token != null) {
-      final response = await http.get(
-        Uri.parse('https://sepuh-api.vercel.app/user/dokter'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
+      if (token != null) {
+        final response = await http.get(Uri.parse('https://sepuh-api.vercel.app/user/dokter/'),
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        );
 
-      if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body);
-        setState(() {
-          _dokter.clear();
-          for (var item in jsonData['data']) {
-            _dokter.add(Dokter.fromJson(item));
-          }
-          _isLoading = false;
-        });
+        if (response.statusCode == 200) {
+          final jsonData = jsonDecode(response.body);
+          setState(() {
+            _dokter.clear();
+            for (var item in jsonData['data']) {
+              _dokter.add(Dokter.fromJson(item));
+            }
+            _isLoading = false;
+          });
+        } else {
+          print('Failed to load data: ${response.statusCode}');
+          print('Response body: ${response.body}');
+          setState(() {
+            _isLoading = false;
+          });
+          throw Exception('Failed to load data');
+        }
       } else {
+        print('No token found');
         setState(() {
           _isLoading = false;
         });
-        throw Exception('Failed to load data');
+        throw Exception('No token found');
       }
-    } else {
+    } catch (e) {
+      print('Error: $e');
       setState(() {
         _isLoading = false;
       });
-      throw Exception('No token found');
     }
   }
 
@@ -66,7 +73,6 @@ class _DoctorScreenState extends State<DoctorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    //final String apiUrl = 'https://sepuh-api.vercel.app/user';
     return Scaffold(
       body: Stack(
         children: [
@@ -141,10 +147,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                                               fontSize: 16,
                                               color: Color(0XFF225374),
                                             ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                          const SizedBox(height: 4),
                                           Text(
                                             item.spesialisasi,
                                             style: Theme.of(context)
@@ -156,7 +159,6 @@ class _DoctorScreenState extends State<DoctorScreen> {
                                                   color: biruNavy,
                                                 ),
                                           ),
-                                          const SizedBox(height: 4),
                                           Column(
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
@@ -187,7 +189,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                 ],
               ),
             ),
-          ),
+                   ),
           Positioned(
             top: 60,
             left: 20,
@@ -218,3 +220,4 @@ class _DoctorScreenState extends State<DoctorScreen> {
     );
   }
 }
+

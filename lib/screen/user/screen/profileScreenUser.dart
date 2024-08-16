@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:sepuh/screen/user/authUser/signInScreenUser.dart';
+import 'package:sepuh/screen/user/screen/riwayatUser.dart';
 import 'package:sepuh/widget/color.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +24,7 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
   late TextEditingController _ageController;
   late TextEditingController _addressController;
   late TextEditingController _historyController;
+  late String? token;
 
   @override
   void initState() {
@@ -32,6 +34,7 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
     _ageController = TextEditingController();
     _addressController = TextEditingController();
     _historyController = TextEditingController();
+
     _fetchUserData();
   }
 
@@ -52,72 +55,63 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
 
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      token = prefs.getString('token');
 
-      if (token == null) {
+      if (token == null || token!.isEmpty) {
         throw Exception('No token found');
       }
-      Map<String, dynamic> decodedToken = Jwt.parseJwt(token);
-      final userId = decodedToken['id'];
 
       final response = await http.get(
-        Uri.parse('https://sepuh-api.vercel.app/user/all/$userId'),
+        Uri.parse('https://sepuh-api.vercel.app/user/pasien'),
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
 
       if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body);
+        final responseData = jsonDecode(response.body);
+        final List<Map<String, dynamic>> usersData =
+            responseData['data'].cast<Map<String, dynamic>>();
 
-        if (jsonData['data'] != null) {
-          final riwayat = jsonData['data']['riwayat'];
-          final userData = jsonData['data']['user'];
-          if (kDebugMode) {
-            print(riwayat?.join(', '));
-          }
+        final currentUser = usersData.firstWhere(
+          (user) => user['token'] == token,
+          orElse: () => {},
+        );
+
+        if (currentUser != null) {
           setState(() {
-            _nameController.text = userData['nama'] ?? '';
-            _emailController.text = userData['email'] ?? '';
-            _ageController.text = userData['usia']?.toString() ?? '';
-            _addressController.text = userData['alamat'] ?? '';
-            _historyController.text = riwayat?.join('riwayat') ?? [];
+            _nameController.text = currentUser['nama'] ?? '';
+            _emailController.text = currentUser['email'] ?? '';
+            _ageController.text = currentUser['usia']?.toString() ?? '';
+            _addressController.text = currentUser['alamat'] ?? '';
+            _historyController.text = (currentUser['riwayat'] as List<dynamic>)
+                .map((item) => item.toString())
+                .join('\n');
+            _isLoading = false;
           });
           if (kDebugMode) {
-            print("berhasil");
-          }
-          final pasienResponse = await http.get(
-            Uri.parse('https://sepuh-api.vercel.app/user/all/${userData['_id']}'),
-            headers: {
-              'Authorization': 'Bearer $token',
-            },
-          );
-          if (kDebugMode) {
-            print(pasienResponse);
-          }
-
-          if (pasienResponse.statusCode == 200) {
-            final pasienData = jsonDecode(pasienResponse.body);
-            if (kDebugMode) {
-              print('Received pasien data: $pasienData');
-            } // Debug print
-
-            setState(() {
-              _historyController.text = pasienData['riwayat'];
-            });
-          } else {
-            throw Exception('Failed to load pasien data');
+            print("Data fetched successfully");
           }
         } else {
-          throw Exception('Unexpected data format');
+          throw Exception('User not found');
         }
       } else {
-        throw Exception('Failed to load user data');
+        if (kDebugMode) {
+          print(
+              'Failed to load user data. Status code: ${response.statusCode}');
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load user data')),
+        );
       }
     } catch (e) {
       if (kDebugMode) {
         print('Error fetching user data: $e');
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching user data: $e')),
+      );
+    } finally {
       setState(() {
         _isLoading = false;
       });
@@ -194,43 +188,26 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _historyController,
-                  decoration: InputDecoration(
-                    hintText: "Riwayat",
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     ElevatedButton(
                       onPressed: () async {
-                        // Update data di sini
                         final SharedPreferences prefs =
                             await SharedPreferences.getInstance();
-                        final token = prefs.getString('token');
+                        token = prefs.getString('token');
 
                         if (token != null) {
                           Map<String, dynamic> decodedToken =
-                              Jwt.parseJwt(token);
+                              Jwt.parseJwt(token!);
                           final userId = decodedToken['id'];
-                          if (kDebugMode) {
-                            print(userId);
-                          }
-                          final pasienId = decodedToken[
-                              'pasien_id']; // assume this is the pasien ID
 
-                          // Update user data
+                          final historyList =
+                              _historyController.text.split('\n');
+
                           final urlUser =
-                              'https://sepuh-api.vercel.app/user/$userId';
+                              'https://sepuh-api.vercel.app/user/all/$userId';
                           final headersUser = {
                             'Authorization': 'Bearer $token',
                             'Content-Type': 'application/json',
@@ -240,58 +217,22 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
                             'email': _emailController.text,
                             'usia': _ageController.text,
                             'alamat': _addressController.text,
-                            'riwayat': _historyController.text,
+                            // 'riwayat': historyList,
                           });
-                          if (kDebugMode) {
-                            print("disini bodyuser : $bodyUser");
-                          }
+
                           final responseUser = await http.put(
                               Uri.parse(urlUser),
                               headers: headersUser,
                               body: bodyUser);
 
                           if (responseUser.statusCode == 200) {
-                            // print(responseUser.body);
-                            //print('User data updated successfully');
-                          } else {
-                            if (kDebugMode) {
-                              print(
-                                  'Error updating user data: ${responseUser.statusCode}');
-                            }
-                          }
-
-                          // Update riwayat data
-                          final urlPasien =
-                              'https://sepuh-api.vercel.app/pasien/$pasienId';
-                          final headersPasien = {
-                            'Authorization': 'Bearer $token',
-                            'Content-Type': 'application/json',
-                          };
-                          final bodyPasien = jsonEncode({
-                            'riwayat': _historyController.text,
-                          });
-
-                          final responsePasien = await http.put(
-                              Uri.parse(urlPasien),
-                              headers: headersPasien,
-                              body: bodyPasien);
-
-                          if (responsePasien.statusCode == 200) {
-                            if (kDebugMode) {
-                              print(responsePasien.body);
-                            }
-                            //print('Riwayat updated successfully');
                             Navigator.of(context).pop();
                           } else {
-                            if (kDebugMode) {
-                              print(
-                                  'Error updating riwayat: ${responsePasien.statusCode}');
-                            }
+                            print(
+                                'Error updating user data: ${responseUser.statusCode}');
                           }
                         } else {
-                          if (kDebugMode) {
-                            print('Token not found');
-                          }
+                          print('Token not found');
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -467,7 +408,7 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
                                           ),
                                         ),
                                         const Text(
-                                          'Pengguna',
+                                          'Pasien',
                                           style: TextStyle(
                                             color: Colors.grey,
                                           ),
@@ -488,10 +429,31 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
                                 const SizedBox(height: 10),
                                 _buildTextField('Alamat:', _addressController,
                                     readOnly: true),
-                                const SizedBox(height: 10),
-                                _buildTextField(
-                                    'Riwayat Kesehatan:', _historyController,
-                                    readOnly: true),
+                                const SizedBox(height: 20),
+                                TextButton(
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    backgroundColor:
+                                        biruNavy,
+                                    padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 100),
+                                    shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ), 
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => riwayatUser(
+                                          token: token ??
+                                              '', // Ensure you have a valid token
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Text('Riwayat Kesehatan'),
+                                ),
                                 const SizedBox(height: 20),
                                 Align(
                                   alignment: Alignment.centerRight,
