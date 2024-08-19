@@ -236,7 +236,7 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Fitur belum tersedia'),
-                    duration: Duration(seconds: 2),
+                    duration: Duration(seconds: 1),
                   ),
                 );
               }
@@ -278,6 +278,7 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
         ListView.builder(
           shrinkWrap: true,
           itemCount: _pasien.length,
+          physics: NeverScrollableScrollPhysics(),
           itemBuilder: (context, index) {
             final patient = _pasien[index];
             return Container(
