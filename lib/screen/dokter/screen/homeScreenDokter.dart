@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../model/pasien.dart';
 import '../../../widget/color.dart';
+import 'assignMedicineScreen.dart';
 
 class homeScreenDokter extends StatefulWidget {
   const homeScreenDokter({Key? key}) : super(key: key);
@@ -188,7 +189,7 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
                                   _buildFeatureButton(
                                       'List\nJadwal', 'assets/schedule.png'),
                                   _buildFeatureButton(
-                                      'Resep\nObat', 'assets/meds.png'),
+                                      'Tambah\nObat', 'assets/meds.png'),
                                 ],
                               ),
                             ],
@@ -224,15 +225,22 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
           ),
           child: IconButton(
             onPressed: () {
+              print('Button clicked: $label');
               if (label == 'List\nPasien') {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => const ListPasienScreen()),
+                    builder: (context) => const ListPasienScreen(),
+                  ),
+                );
+              } else if (label == 'Tambah\nObat') {
+                print('Navigating to assignMedicineScreen');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => assignMedicineScreen()),
                 );
               } else {
-                // Do nothing for other features
-                // You can add a print statement or show a snackbar to indicate that the feature is not yet implemented
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Fitur belum tersedia'),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:sepuh/screen/user/widget/botNavbarUser.dart';
+import 'package:multi_select_flutter/multi_select_flutter.dart';
+import 'package:sepuh/screen/dokter/widget/botNavbarDokter.dart';
 import 'package:sepuh/widget/color.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -8,28 +9,31 @@ import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
 import '../../../model/doctor.dart';
 
-class registerJadwalScreenUser extends StatefulWidget {
-  const registerJadwalScreenUser({Key? key}) : super(key: key);
+class assignMedicineScreen extends StatefulWidget {
+  const assignMedicineScreen({Key? key}) : super(key: key);
 
   @override
-  _registerJadwalScreenUserState createState() => _registerJadwalScreenUserState();
+  _assignMedicineScreenState createState() => _assignMedicineScreenState();
 }
 
-class _registerJadwalScreenUserState extends State<registerJadwalScreenUser> {
+class _assignMedicineScreenState extends State<assignMedicineScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _namaController = TextEditingController();
+  final TextEditingController _pasienController = TextEditingController();
   final TextEditingController _tanggalController = TextEditingController();
+  final TextEditingController _rujukanController = TextEditingController();
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
-  List<Map<String, String>> _dokter = [];
-  String? _selectedDoctor;
+  List<Map<String, String>> _medicine = [];
+  // String? _selectedMedicine;
+  List<String> _selectedMedicines = []; // Change this to a list
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _fetchName();
-    _fetchDoctors();
+    _fetchMedicines();
   }
 
   Future<void> _fetchName() async {
@@ -47,7 +51,7 @@ class _registerJadwalScreenUserState extends State<registerJadwalScreenUser> {
     }
   }
 
-  Future<void> _fetchDoctors() async {
+  Future<void> _fetchMedicines() async {
     setState(() {
       _isLoading = true;
     });
@@ -57,7 +61,7 @@ class _registerJadwalScreenUserState extends State<registerJadwalScreenUser> {
 
     if (token != null) {
       final response = await http.get(
-        Uri.parse('https://sepuh-api.vercel.app/user/dokter/'),
+        Uri.parse('https://sepuh-api.vercel.app/obat'),
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -66,15 +70,10 @@ class _registerJadwalScreenUserState extends State<registerJadwalScreenUser> {
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
         setState(() {
-          _dokter = [
+          _medicine = [
             for (var item in jsonData['data'])
               {
                 'nama': item['nama'] as String,
-                'spesialisasi': item['spesialisasi'] as String,
-                'jadwal': (item['jadwal'] as List).map((jadwalItem) {
-                  final jadwal = Jadwal.fromJson(jadwalItem);
-                  return '${jadwal.hari}: ${jadwal.jamMulai} - ${jadwal.jamSelesai}';
-                }).join('\n'),
               }
           ];
           _isLoading = false;
@@ -83,7 +82,7 @@ class _registerJadwalScreenUserState extends State<registerJadwalScreenUser> {
         setState(() {
           _isLoading = false;
         });
-        throw Exception('Failed to load doctors');
+        throw Exception('Failed to load medicines');
       }
     } else {
       setState(() {
@@ -93,25 +92,31 @@ class _registerJadwalScreenUserState extends State<registerJadwalScreenUser> {
     }
   }
 
-  Future<void> registerPasien() async {
+  Future<void> assignmedicine() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
     if (token != null) {
-      print(_namaController.text);
+      print(_pasienController.text);
+      print(_selectedMedicines);
       print(_tanggalController.text);
-      print(_selectedDoctor);
+      print(_namaController.text);
+      print(_rujukanController);
       try {
         final response = await http.post(
-          Uri.parse('https://sepuh-api.vercel.app/jadwal'),
+          Uri.parse('https://sepuh-api.vercel.app/resep'),
           headers: {
             'Authorization': 'Bearer $token',
             'Content-Type': 'application/json',
           },
           body: jsonEncode({
-            'pasien': _namaController.text,
+            'pasien': _pasienController.text,
+            // 'obat': selectedMedicinesString,
+            // 'obat': _medicine,
+            'obat': _selectedMedicines,
             'waktu': _tanggalController.text,
-            'dokter': _selectedDoctor,
+            'dokter': _namaController.text,
+            'rujukan': _rujukanController.text,
           }),
         );
 
@@ -185,7 +190,10 @@ class _registerJadwalScreenUserState extends State<registerJadwalScreenUser> {
                   onPressed: () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => botNavbarUser(index: 0,)),
+                      MaterialPageRoute(
+                          builder: (context) => BotNavBarDokter(
+                                index: 0,
+                              )),
                     );
                   },
                   child: const Text(
@@ -225,7 +233,7 @@ class _registerJadwalScreenUserState extends State<registerJadwalScreenUser> {
           Padding(
             padding: EdgeInsets.only(top: 100, left: 30, right: 30),
             child: Text(
-              "Registrasi Pasien",
+              "Resep Pasien",
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontWeight: FontWeight.bold,
@@ -252,7 +260,7 @@ class _registerJadwalScreenUserState extends State<registerJadwalScreenUser> {
                       children: <Widget>[
                         SizedBox(height: 8),
                         Text(
-                          "Nama Lengkap",
+                          "Nama Pasien",
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontWeight: FontWeight.bold,
@@ -262,7 +270,7 @@ class _registerJadwalScreenUserState extends State<registerJadwalScreenUser> {
                         ),
                         SizedBox(height: 8),
                         TextFormField(
-                          controller: _namaController,
+                          controller: _pasienController,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
@@ -282,10 +290,63 @@ class _registerJadwalScreenUserState extends State<registerJadwalScreenUser> {
                               gapPadding: 4,
                             ),
                           ),
-                          readOnly: true,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Nama Lengkap tidak boleh kosong';
+                              return 'Nama pasien tidak boleh kosong';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          "Obat",
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.bold,
+                            color: biruNavy,
+                            fontSize: 20,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        MultiSelectDialogField<String>(
+                          items: _medicine.map((medicine) {
+                            return MultiSelectItem<String>(
+                              medicine['nama']!,
+                              medicine['nama']!,
+                            );
+                          }).toList(),
+                          title: Text("Pilih Obat"),
+                          selectedColor: biruNavy,
+                          decoration: BoxDecoration(
+                            color: bg,
+                            borderRadius: BorderRadius.all(Radius.circular(16)),
+                            border: Border.all(
+                              color: biruNavy,
+                              width: 2,
+                            ),
+                          ),
+                          buttonIcon: Icon(
+                            Icons.arrow_drop_down,
+                            color: biruNavy,
+                          ),
+                          buttonText: Text(
+                            "Pilih Obat",
+                            style: TextStyle(
+                              color: biruNavy,
+                              fontSize: 16,
+                            ),
+                          ),
+                          dialogHeight: _medicine.length <= 8
+                              ? _medicine.length * 50.0
+                              : 400.0,
+                          onConfirm: (values) {
+                            setState(() {
+                              _selectedMedicines = values;
+                            });
+                          },
+                          validator: (values) {
+                            if (values == null || values.isEmpty) {
+                              return 'Obat tidak boleh kosong';
                             }
                             return null;
                           },
@@ -384,70 +445,75 @@ class _registerJadwalScreenUserState extends State<registerJadwalScreenUser> {
                           ),
                         ),
                         SizedBox(height: 8),
-                        _isLoading
-                            ? CircularProgressIndicator()
-                            : DropdownButtonFormField<String>(
-                                value: _selectedDoctor,
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  filled: true,
-                                  fillColor: bg,
-                                  contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 10),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide.none,
-                                    gapPadding: 4,
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide.none,
-                                    gapPadding: 4,
-                                  ),
-                                ),
-                                items: _dokter.map((doctor) {
-                                  return DropdownMenuItem<String>(
-                                    value: doctor['nama'],
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          '${doctor['nama']} - ${doctor['spesialisasi']}',
-                                          style: TextStyle(
-                                            fontFamily: 'Poppins',
-                                            fontWeight: FontWeight.bold,
-                                            color: biruNavy,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        Text(
-                                          doctor['jadwal']!,
-                                          style: TextStyle(
-                                            fontFamily: 'Poppins',
-                                            fontWeight: FontWeight.bold,
-                                            color: biruToska,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedDoctor = value;
-                                  });
-                                },
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Dokter tidak boleh kosong';
-                                  }
-                                  return null;
-                                },
-                              ),
+                        TextFormField(
+                          controller: _namaController,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            filled: true,
+                            fillColor: bg,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 8),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                              gapPadding: 4,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                              gapPadding: 4,
+                            ),
+                          ),
+                          readOnly: true,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Dokter tidak boleh kosong';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          "Rujukan",
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.bold,
+                            color: biruNavy,
+                            fontSize: 20,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        TextFormField(
+                          controller: _rujukanController,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            filled: true,
+                            fillColor: bg,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 8),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                              gapPadding: 4,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                              gapPadding: 4,
+                            ),
+                          ),
+                          // readOnly: true,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Rujukan tidak boleh kosong';
+                            }
+                            return null;
+                          },
+                        ),
                         SizedBox(height: 14),
                         Center(
                           child: ElevatedButton(
@@ -456,11 +522,11 @@ class _registerJadwalScreenUserState extends State<registerJadwalScreenUser> {
                             ),
                             onPressed: () {
                               if (_formKey.currentState!.validate()) {
-                                registerPasien();
+                                assignmedicine();
                               }
                             },
                             child: Text(
-                              'DAFTAR',
+                              'SIMPAN',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,

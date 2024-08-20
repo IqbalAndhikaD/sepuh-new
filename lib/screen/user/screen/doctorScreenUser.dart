@@ -27,7 +27,8 @@ class _DoctorScreenState extends State<DoctorScreen> {
       final token = prefs.getString('token');
 
       if (token != null) {
-        final response = await http.get(Uri.parse('https://sepuh-api.vercel.app/user/dokter/'),
+        final response = await http.get(
+          Uri.parse('https://sepuh-api.vercel.app/user/dokter/'),
           headers: {
             'Authorization': 'Bearer $token',
           },
@@ -115,7 +116,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                             itemBuilder: (BuildContext context, int index) {
                               final item = _dokter[index];
                               return Container(
-                                height: 100,
+                                height: 112,
                                 margin: const EdgeInsets.only(
                                     bottom: 8, left: 16, right: 16),
                                 decoration: BoxDecoration(
@@ -141,7 +142,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            item.nama,
+                                            'Dr. ${item.nama}', 
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16,
@@ -149,7 +150,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                                             ),
                                           ),
                                           Text(
-                                            item.spesialisasi,
+                                            'Spesialis ${item.spesialisasi}', 
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .bodySmall
@@ -189,7 +190,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                 ],
               ),
             ),
-                   ),
+          ),
           Positioned(
             top: 60,
             left: 20,
@@ -220,4 +221,3 @@ class _DoctorScreenState extends State<DoctorScreen> {
     );
   }
 }
-

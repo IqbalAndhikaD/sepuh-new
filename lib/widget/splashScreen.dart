@@ -33,10 +33,11 @@ class SplashScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset(
-                  'assets/logoSplash.png',
-                  width: 150,
-                  height: 150,
+                  'assets/logo.png',
+                  width: 140,
+                  height: 140,
                 ),
+                SizedBox(height: 20,),
                 const Text(
                   'SEPUH',
                   style: TextStyle(

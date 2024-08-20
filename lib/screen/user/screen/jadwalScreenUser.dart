@@ -40,7 +40,7 @@ class _jadwalScreenUserState extends State<jadwalScreenUser> {
       final userName = decodedToken['nama'];
 
       final response = await http.get(
-        Uri.parse('https://sepuh-api.vercel.app/user/dokter/'),
+        Uri.parse('hhttps://sepuh-api.vercel.app/jadwal'),
         headers: {
           'Authorization': 'Bearer $token',
         },

@@ -371,7 +371,7 @@ class _HomeScreenUserState extends State<HomeScreenUser> {
                             itemBuilder: (BuildContext context, int index) {
                               final item = _dokter[index];
                               return Container(
-                                height: 100,
+                                height: 112,
                                 margin: const EdgeInsets.only(
                                     bottom: 8, left: 16, right: 16),
                                 decoration: BoxDecoration(
@@ -397,7 +397,7 @@ class _HomeScreenUserState extends State<HomeScreenUser> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            item.nama,
+                                            'Dr. ${item.nama}', 
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16,
@@ -405,7 +405,7 @@ class _HomeScreenUserState extends State<HomeScreenUser> {
                                             ),
                                           ),
                                           Text(
-                                            item.spesialisasi,
+                                            'Spesialis ${item.spesialisasi}', 
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .bodySmall
@@ -415,6 +415,7 @@ class _HomeScreenUserState extends State<HomeScreenUser> {
                                                   color: biruNavy,
                                                 ),
                                           ),
+                                          SizedBox(height: 8),
                                           Column(
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
