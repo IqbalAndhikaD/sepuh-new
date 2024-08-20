@@ -2,11 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:sepuh/screen/dokter/screen/ListJadwalScreen.dart';
 import 'package:sepuh/screen/dokter/screen/ListPasienScreen.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../model/pasien.dart';
+import '../../../model/schedule.dart';
 import '../../../widget/color.dart';
 
 class homeScreenDokter extends StatefulWidget {
@@ -17,17 +18,17 @@ class homeScreenDokter extends StatefulWidget {
 }
 
 class _homeScreenDokterState extends State<homeScreenDokter> {
-  List<Pasien> _pasien = [];
+  List<Schedule> _schedules = [];
+  String _name = '';
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchPasien();
-    _fetchName();
+    _fetchName().then((_) {
+      _fetchSchedules(_name);
+    });
   }
-
-  String _name = '';
 
   Future<void> _fetchName() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -48,7 +49,7 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
     }
   }
 
-  Future<void> _fetchPasien() async {
+  Future<void> _fetchSchedules(String doctorName) async {
     setState(() {
       _isLoading = true;
     });
@@ -58,7 +59,7 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
 
     if (token != null) {
       final response = await http.get(
-        Uri.parse('https://sepuh-api.vercel.app/user/pasien'),
+        Uri.parse('https://sepuh-api.vercel.app/jadwal'),
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -67,10 +68,16 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
         setState(() {
-          _pasien.clear();
+          _schedules.clear();
           for (var item in jsonData['data']) {
-            _pasien.add(Pasien.fromJson(item));
+            final schedule = Schedule.fromJson(item);
+            // Only add the schedule if the doctor's name matches
+            if (schedule.dokter.nama == doctorName) {
+              _schedules.add(schedule);
+            }
           }
+
+          _schedules.sort((a, b) => a.antrian.compareTo(b.antrian));
           _isLoading = false;
         });
       } else {
@@ -201,7 +208,7 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
                 const SizedBox(height: 5),
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : _buildPatientList(),
+                    : _buildScheduleList(),
               ],
             ),
           ],
@@ -229,6 +236,13 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
                   context,
                   MaterialPageRoute(
                       builder: (context) => const ListPasienScreen()),
+                );
+              } else if (label == 'List\nJadwal') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          ListJadwalScreen(schedules: _schedules)),
                 );
               } else {
                 // Do nothing for other features
@@ -259,7 +273,7 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
     );
   }
 
-  Widget _buildPatientList() {
+  Widget _buildScheduleList() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -277,10 +291,10 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
         ),
         ListView.builder(
           shrinkWrap: true,
-          itemCount: _pasien.length,
+          itemCount: _schedules.length,
           physics: NeverScrollableScrollPhysics(),
           itemBuilder: (context, index) {
-            final patient = _pasien[index];
+            final schedule = _schedules[index];
             return Container(
               margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
               decoration: BoxDecoration(
@@ -297,24 +311,44 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
               ),
               child: ListTile(
                 title: Text(
-                  patient.nama,
+                  schedule.pasien.nama,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: biruNavy,
                     fontFamily: 'Poppins',
                   ),
                 ),
-                subtitle: Text(
-                  "${patient.usia} tahun",
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontFamily: 'Poppins',
-                  ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Hari: ${schedule.waktu.hari}",
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                    Text(
+                      "Jam: ${schedule.waktu.jamMulai} - ${schedule.waktu.jamSelesai}",
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                    Text(
+                      "Status: ${schedule.status ? "Aktif" : "Menunggu Antrian"}",
+                      style: TextStyle(
+                        color: schedule.status ? Colors.green : Colors.blue,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ],
                 ),
                 leading: CircleAvatar(
                   backgroundColor: biruToska,
                   child: Text(
-                    patient.nama[0].toUpperCase(),
+                    schedule.antrian.toString(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -322,7 +356,8 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
                     ),
                   ),
                 ),
-                onTap: () => _showPatientInfo(patient),
+                isThreeLine: true,
+                onTap: () => _showScheduleInfo(schedule),
               ),
             );
           },
@@ -331,13 +366,13 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
     );
   }
 
-  void _showPatientInfo(Pasien pasien) {
+  void _showScheduleInfo(Schedule schedule) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(
-            'Informasi Pasien',
+            'Informasi Jadwal',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: biruNavy,
@@ -349,17 +384,12 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Nama: ${pasien.nama}'),
-                Text('Usia: ${pasien.usia} tahun'),
-                Text('Alamat: ${pasien.alamat ?? 'Tidak ada alamat'}'),
-                Text('Riwayat:'),
-                if (pasien.riwayat != null && pasien.riwayat!.isNotEmpty)
-                  ...pasien.riwayat!.map((item) => Padding(
-                        padding: EdgeInsets.only(left: 16, top: 4),
-                        child: Text('• $item'),
-                      ))
-                else
-                  Text('Tidak ada riwayat'),
+                Text('Nama Pasien : ${schedule.pasien.nama}'),
+                Text('Hari : ${schedule.waktu.hari}'),
+                Text(
+                    'Jam : ${schedule.waktu.jamMulai} - ${schedule.waktu.jamSelesai}'),
+                Text('Antrian : ${schedule.antrian}'),
+                Text('Status : ${schedule.status ? "Aktif" : "Tidak Aktif"}'),
               ],
             ),
           ),
