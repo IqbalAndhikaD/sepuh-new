@@ -10,16 +10,13 @@ import 'package:jwt_decoder/jwt_decoder.dart'; // Import the jwt_decoder package
 import '../../../widget/color.dart';
 
 class jadwalScreenUser extends StatefulWidget {
-  const jadwalScreenUser({super.key});
-
   @override
-  State<jadwalScreenUser> createState() => _jadwalScreenUserState();
+  _jadwalScreenUserState createState() => _jadwalScreenUserState();
 }
 
 class _jadwalScreenUserState extends State<jadwalScreenUser> {
   List<Jadwal> jadwalList = [];
   bool isLoading = false;
-  String? userName;
 
   @override
   void initState() {
@@ -36,24 +33,19 @@ class _jadwalScreenUserState extends State<jadwalScreenUser> {
     final token = prefs.getString('token');
 
     if (token != null) {
-      Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
-      final userName = decodedToken['nama'];
-
       final response = await http.get(
-        Uri.parse('hhttps://sepuh-api.vercel.app/jadwal'),
+        Uri.parse('https://sepuh-api.vercel.app/jadwal'),
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
 
       if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-
+        final jsonData = jsonDecode(response.body);
+        jadwalList = (jsonData['data'] as List<dynamic>)
+            .map((item) => Jadwal.fromJson(item))
+            .toList();
         setState(() {
-          jadwalList = (jsonData['data'] as List<dynamic>)
-              .map((item) => Jadwal.fromJson(item))
-              .where((jadwal) => jadwal.pasien?['nama'] == userName)
-              .toList();
           isLoading = false;
         });
       } else {
@@ -73,152 +65,27 @@ class _jadwalScreenUserState extends State<jadwalScreenUser> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(16),
-                bottomRight: Radius.circular(16),
-              ),
-              gradient: LinearGradient(
-                colors: [biruNavy, biruToska],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              color: biruNavy,
-            ),
-            width: double.infinity,
-            height: 200,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 32, left: 20, right: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 24, bottom: 28),
-                  child: Positioned(
-                    top: 60,
-                    left: 20,
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: const Row(
-                        children: [
-                          Icon(
-                            Icons.arrow_back,
-                            color: Colors.white,
-                          ),
-                          SizedBox(width: 10),
-                          Text(
-                            'Back',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.grey,
-                        offset: Offset(0.0, 2.0),
-                        blurRadius: 6.0,
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: " Search",
-                      border: InputBorder.none,
-                      prefixIcon: Icon(Icons.search, color: biruNavy),
-                      hintStyle: const TextStyle(
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                    onChanged: (value) {
-                      setState(() {});
-                    },
-                  ),
-                  constraints: BoxConstraints.loose(const Size.fromHeight(50)),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 52, left: 12),
-                  child: Text(
-                    'Jadwal',
-                    style: TextStyle(
-                        color: biruNavy,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Poppins'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 252, left: 16, right: 16),
-              child: SingleChildScrollView(
-                  child: Column(
-                children: [
-                  const SizedBox(height: 10),
-                  if (isLoading)
-                    const CircularProgressIndicator()
-                  else
-                    for (var jadwal in jadwalList)
-                      ScheduleCard(
-                        status: jadwal.status,
-                        time: DateFormat('HH:mm').format(jadwal.waktu),
-                        date: DateFormat('MM/dd/yyyy').format(jadwal.waktu),
-                        pasien: jadwal.pasien != null
-                            ? jadwal.pasien!['nama']
-                            : 'Belum ada pasien',
-                        doctor:
-                            '${jadwal.dokter['nama']} - ${jadwal.dokter['spesialisasi']}',
-                        color: getStatusColor(jadwal.status),
-                        iconColor: getStatusIconColor(jadwal.status),
-                      ),
-                ],
-              )),
-            ),
-          ),
-        ],
+      appBar: AppBar(
+        title: Text('Jadwal App'),
       ),
+      body: isLoading
+          ? Center(
+              child: CircularProgressIndicator(),
+            )
+          : ListView.builder(
+              itemCount: jadwalList.length,
+              itemBuilder: (context, index) {
+                Jadwal jadwal = jadwalList[index];
+                return Card(
+                  child: ListTile(
+                    title: Text(jadwal.pasien!['nama']),
+                    subtitle: Text(jadwal.dokter!['nama']),
+                    trailing: Text(DateFormat('HH:mm').format(jadwal.waktu)),
+                  ),
+                );
+              },
+            ),
     );
-  }
-
-  Color getStatusColor(String status) {
-    switch (status) {
-      case 'disetujui':
-        return Colors.grey;
-      case 'ditolak':
-        return const Color(0xFF225374);
-      case 'diajukan':
-      default:
-        return const Color(0xFF225374);
-    }
-  }
-
-  Color? getStatusIconColor(String status) {
-    switch (status) {
-      case 'disetujui':
-        return Colors.grey[400];
-      case 'ditolak':
-        return Colors.red[400];
-      case 'diajukan':
-      default:
-        return Colors.green[400];
-    }
   }
 }
 
@@ -240,14 +107,16 @@ class Jadwal {
   factory Jadwal.fromJson(Map<String, dynamic> json) {
     return Jadwal(
       id: json['_id'],
-      waktu: DateTime.parse(json['waktu']),
-      dokter: json['dokter'] ?? {},
+waktu: parseWaktu(json['waktu']),   
+   dokter: json['dokter'] ?? {},
       pasien: json['pasien'],
       status: json['status'],
     );
   }
 }
-
+DateTime parseWaktu(String waktuString) {
+  return DateFormat('dd-MM-yyyy HH:mm').parse(waktuString);
+}
 class ScheduleCard extends StatelessWidget {
   final String status;
   final String time;

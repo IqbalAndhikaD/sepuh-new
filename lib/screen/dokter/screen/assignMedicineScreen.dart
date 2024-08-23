@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
-import '../../../model/doctor.dart';
 
 class assignMedicineScreen extends StatefulWidget {
   const assignMedicineScreen({Key? key}) : super(key: key);

@@ -1,14 +1,18 @@
+// ignore: file_names
+// ignore_for_file: file_names, duplicate_ignore
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:sepuh/screen/dokter/screen/ListJadwalScreen.dart';
 import 'package:sepuh/screen/dokter/screen/ListPasienScreen.dart';
+import 'package:sepuh/screen/dokter/screen/assignMedicineScreen.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../model/pasien.dart';
+import '../../../model/schedule.dart';
 import '../../../widget/color.dart';
-import 'assignMedicineScreen.dart';
 
 class homeScreenDokter extends StatefulWidget {
   const homeScreenDokter({Key? key}) : super(key: key);
@@ -18,17 +22,17 @@ class homeScreenDokter extends StatefulWidget {
 }
 
 class _homeScreenDokterState extends State<homeScreenDokter> {
-  List<Pasien> _pasien = [];
+  List<Schedule> _schedules = [];
+  String _name = '';
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchPasien();
-    _fetchName();
+    _fetchName().then((_) {
+      _fetchSchedules(_name);
+    });
   }
-
-  String _name = '';
 
   Future<void> _fetchName() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -49,7 +53,7 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
     }
   }
 
-  Future<void> _fetchPasien() async {
+  Future<void> _fetchSchedules(String doctorName) async {
     setState(() {
       _isLoading = true;
     });
@@ -59,7 +63,7 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
 
     if (token != null) {
       final response = await http.get(
-        Uri.parse('https://sepuh-api.vercel.app/user/pasien'),
+        Uri.parse('https://sepuh-api.vercel.app/jadwal'),
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -68,10 +72,16 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
         setState(() {
-          _pasien.clear();
+          _schedules.clear();
           for (var item in jsonData['data']) {
-            _pasien.add(Pasien.fromJson(item));
+            final schedule = Schedule.fromJson(item);
+            // Only add the schedule if the doctor's name matches
+            if (schedule.dokter.nama == doctorName) {
+              _schedules.add(schedule);
+            }
           }
+
+          _schedules.sort((a, b) => a.antrian.compareTo(b.antrian));
           _isLoading = false;
         });
       } else {
@@ -131,27 +141,7 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
                           ),
                         ),
                       ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.grey,
-                              offset: Offset(0.0, 2.0),
-                              blurRadius: 6.0,
-                            ),
-                          ],
-                        ),
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: "Search",
-                            border: InputBorder.none,
-                            prefixIcon: Icon(Icons.search, color: biruNavy),
-                            hintStyle: const TextStyle(fontFamily: 'Poppins'),
-                          ),
-                        ),
-                      ),
+                      
                       const SizedBox(height: 12),
                       Container(
                         decoration: BoxDecoration(
@@ -189,7 +179,7 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
                                   _buildFeatureButton(
                                       'List\nJadwal', 'assets/schedule.png'),
                                   _buildFeatureButton(
-                                      'Tambah\nObat', 'assets/meds.png'),
+                                      'Resep\nObat', 'assets/meds.png'),
                                 ],
                               ),
                             ],
@@ -202,7 +192,7 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
                 const SizedBox(height: 5),
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : _buildPatientList(),
+                    : _buildScheduleList(),
               ],
             ),
           ],
@@ -212,62 +202,70 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
   }
 
   Widget _buildFeatureButton(String label, String iconPath) {
-    return Column(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              colors: [biruNavy, biruToska],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: IconButton(
-            onPressed: () {
-              print('Button clicked: $label');
-              if (label == 'List\nPasien') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ListPasienScreen(),
-                  ),
-                );
-              } else if (label == 'Tambah\nObat') {
-                print('Navigating to assignMedicineScreen');
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => assignMedicineScreen()),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Fitur belum tersedia'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-            icon: Image.asset(iconPath, width: 50),
+  return Column(
+    children: [
+      Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            colors: [biruNavy, biruToska],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: biruNavy,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Poppins',
-          ),
+        child: IconButton(
+          onPressed: () {
+            if (label == 'List\nPasien') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ListPasienScreen(),
+                ),
+              );
+            } else if (label == 'List\nJadwal') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ListJadwalScreen(schedules: _schedules),
+                ),
+              );
+            } else if (label == 'Resep\nObat') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const assignMedicineScreen(),
+                ),
+              );
+            } else {
+              // Handle other cases or show a snackbar
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Fitur belum tersedia'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            }
+          },
+          icon: Image.asset(iconPath, width: 50),
         ),
-      ],
-    );
-  }
+      ),
+      const SizedBox(height: 8),
+      Text(
+        label,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: biruNavy,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Poppins',
+        ),
+      ),
+    ],
+  );
+}
 
-  Widget _buildPatientList() {
+
+  Widget _buildScheduleList() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -285,11 +283,12 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
         ),
         ListView.builder(
           shrinkWrap: true,
-          itemCount: _pasien.length,
+          itemCount: _schedules.length,
+          physics: NeverScrollableScrollPhysics(),
           itemBuilder: (context, index) {
-            final patient = _pasien[index];
+            final schedule = _schedules[index];
             return Container(
-              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+              margin: const EdgeInsets.only(left: 20, right: 20, bottom: 10),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -304,24 +303,44 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
               ),
               child: ListTile(
                 title: Text(
-                  patient.nama,
+                  schedule.pasien.nama,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: biruNavy,
                     fontFamily: 'Poppins',
                   ),
                 ),
-                subtitle: Text(
-                  "${patient.usia} tahun",
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontFamily: 'Poppins',
-                  ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Hari: ${schedule.waktu.hari}",
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                    Text(
+                      "Jam: ${schedule.waktu.jamMulai} - ${schedule.waktu.jamSelesai}",
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                    Text(
+                      "Status: ${schedule.status ? "Aktif" : "Menunggu Antrian"}",
+                      style: TextStyle(
+                        color: schedule.status ? Colors.green : Colors.blue,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ],
                 ),
                 leading: CircleAvatar(
                   backgroundColor: biruToska,
                   child: Text(
-                    patient.nama[0].toUpperCase(),
+                    schedule.antrian.toString(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -329,7 +348,8 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
                     ),
                   ),
                 ),
-                onTap: () => _showPatientInfo(patient),
+                isThreeLine: true,
+                onTap: () => _showScheduleInfo(schedule),
               ),
             );
           },
@@ -338,13 +358,13 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
     );
   }
 
-  void _showPatientInfo(Pasien pasien) {
+  void _showScheduleInfo(Schedule schedule) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(
-            'Informasi Pasien',
+            'Informasi Jadwal',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: biruNavy,
@@ -356,17 +376,13 @@ class _homeScreenDokterState extends State<homeScreenDokter> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Nama: ${pasien.nama}'),
-                Text('Usia: ${pasien.usia} tahun'),
-                Text('Alamat: ${pasien.alamat ?? 'Tidak ada alamat'}'),
-                Text('Riwayat:'),
-                if (pasien.riwayat != null && pasien.riwayat!.isNotEmpty)
-                  ...pasien.riwayat!.map((item) => Padding(
-                        padding: EdgeInsets.only(left: 16, top: 4),
-                        child: Text('• $item'),
-                      ))
-                else
-                  Text('Tidak ada riwayat'),
+                Text('Nama Pasien : ${schedule.pasien.nama}'),
+                Text('Riwayat Pasien'),
+                Text('Hari : ${schedule.waktu.hari}'),
+                Text(
+                    'Jam : ${schedule.waktu.jamMulai} - ${schedule.waktu.jamSelesai}'),
+                Text('Antrian : ${schedule.antrian}'),
+                Text('Status : ${schedule.status ? "Aktif" : "Tidak Aktif"}'),
               ],
             ),
           ),

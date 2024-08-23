@@ -122,7 +122,7 @@ class _HomeScreenUserState extends State<HomeScreenUser> {
               color: biruNavy,
             ),
             width: double.infinity,
-            height: 256,
+            height: 220,
           ),
           Padding(
             padding: const EdgeInsets.only(top: 32, left: 20, right: 20),
@@ -142,35 +142,9 @@ class _HomeScreenUserState extends State<HomeScreenUser> {
                     ),
                   ),
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.grey,
-                        offset: Offset(0.0, 2.0),
-                        blurRadius: 6.0,
-                      ),
-                    ],
-                  ),
-                  constraints: BoxConstraints.loose(const Size.fromHeight(50)),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: " Search",
-                      border: InputBorder.none,
-                      prefixIcon: Icon(Icons.search, color: biruNavy),
-                      hintStyle: const TextStyle(
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                    onChanged: (value) {
-                      setState(() {});
-                    },
-                  ),
-                ),
+                
                 Padding(
-                  padding: const EdgeInsets.only(top: 12),
+                  padding: const EdgeInsets.only(top: 0),
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
@@ -234,7 +208,7 @@ class _HomeScreenUserState extends State<HomeScreenUser> {
                                   ),
                                 ),
                                 Text(
-                                  'Tambah\nPasien',
+                                  'Regist\nAntrian',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                       color: biruNavy,
@@ -273,7 +247,7 @@ class _HomeScreenUserState extends State<HomeScreenUser> {
                                   ),
                                 ),
                                 Text(
-                                  'Daftar\nDokter',
+                                  'List\nDokter',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                       color: biruNavy,
@@ -297,13 +271,13 @@ class _HomeScreenUserState extends State<HomeScreenUser> {
                                   ),
                                   child: IconButton(
                                     onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const jadwalScreenUser(),
-                                        ),
-                                      );
+                                      // Navigator.push(
+                                      //   context,
+                                      //   MaterialPageRoute(
+                                      //     builder: (context) =>
+                                      //         jadwalScreenUser(),
+                                      //   ),
+                                      // );
                                     },
                                     icon: Image.asset(
                                       'assets/schedule.png',
@@ -333,7 +307,7 @@ class _HomeScreenUserState extends State<HomeScreenUser> {
           ),
           Center(
             child: Container(
-              padding: const EdgeInsets.only(top: 380),
+              padding: const EdgeInsets.only(top: 320),
               constraints: const BoxConstraints(maxWidth: 400),
               child: Column(
                 children: [
@@ -371,7 +345,7 @@ class _HomeScreenUserState extends State<HomeScreenUser> {
                             itemBuilder: (BuildContext context, int index) {
                               final item = _dokter[index];
                               return Container(
-                                height: 112,
+                                height: 130,
                                 margin: const EdgeInsets.only(
                                     bottom: 8, left: 16, right: 16),
                                 decoration: BoxDecoration(

@@ -116,7 +116,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                             itemBuilder: (BuildContext context, int index) {
                               final item = _dokter[index];
                               return Container(
-                                height: 112,
+                                height: 130,
                                 margin: const EdgeInsets.only(
                                     bottom: 8, left: 16, right: 16),
                                 decoration: BoxDecoration(
